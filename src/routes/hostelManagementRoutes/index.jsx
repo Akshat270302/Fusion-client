@@ -1,0 +1,56 @@
+import { host } from "../globalRoutes";
+
+export const getNotices = `${host}/hostelmanagement/notices/`;
+export const getStudentNotices = `${host}/hostelmanagement/student/notices/`;
+export const getCaretakers = `${host}/hostelmanagement/get_caretakers/`;
+export const getWardens = `${host}/hostelmanagement/get_wardens/`;
+export const getBatches = `${host}/hostelmanagement/get_batches/`;
+export const createNotice = `${host}/hostelmanagement/notices/`;
+export const deleteNotice = `${host}/hostelmanagement/delete_notice/`;
+export const viewHostel = `${host}/hostelmanagement/admin-hostel-list`;
+export const requestRoom = `${host}/hostelmanagement/book_guest_room/`;
+export const requestLeave = `${host}/hostelmanagement/leave/apply/`;
+export const addHostelRoute = `${host}/hostelmanagement/add-hostel/`;
+export const assignCaretakers = `${host}/hostelmanagement/assign_caretakers/`;
+export const assignWarden = `${host}/hostelmanagement/assign_warden/`;
+export const assignBatch = `${host}/hostelmanagement/assign_batch/`;
+export const getStudentsInfo = `${host}/hostelmanagement/students_get_students_info/`;
+export const request_guest_room = `${host}/hostelmanagement/book_guest_room/`;
+export const getStudentsInfo2 = `${host}/hostelmanagement/caretaker_get_students_info/`;
+export const searchStudents = `${host}/hostelmanagement/students/search/`;
+export const getStudentById = (studentId) =>
+  `${host}/hostelmanagement/students/${studentId}/`;
+export const assignRoom = `${host}/hostelmanagement/rooms/assign/`;
+export const myRoom = `${host}/hostelmanagement/rooms/my-room/`;
+export const imposeFineRoute = `${host}/hostelmanagement/fines/impose/`;
+export const show_leave_request = `${host}/hostelmanagement/leave/pending/`;
+export const update_leave_status = `${host}/hostelmanagement/leave/update-status/`;
+export const fetch_fines_url = `${host}/hostelmanagement/fines/hostel/`;
+export const update_fine_status_url = (fine_id) =>
+  `${host}/hostelmanagement/update-fine-status/${fine_id}/`;
+export const fetch_complaint = `${host}/hostelmanagement/hostel_complaints/`;
+export const fine_show = `${host}/hostelmanagement/fines/my-fines/`;
+export const my_leaves = `${host}/hostelmanagement/leave/my-requests/`;
+export const show_guestroom_booking_request = `${host}/hostelmanagement/fetching_guest_room_request/`;
+export const update_guest_room = `${host}/hostelmanagement/update_guest_room/`;
+export const get_intender_id = `${host}/hostelmanagement/get_intender_id/`;
+export const get_guestroom_bookings_for_students = `${host}/hostelmanagement/get_guest_room_request_students/`;
+export const upload_attendance = `${host}/hostelmanagement/upload_attendance/`;
+export const view_attendance = `${host}/hostelmanagement/view_attendance/`;
+export const attendance_students = `${host}/hostelmanagement/attendance/students/`;
+export const attendance_submit = `${host}/hostelmanagement/attendance/submit/`;
+export const attendance_my_attendance = `${host}/hostelmanagement/attendance/my-attendance/`;
+export const assign_batch = `${host}/hostelmanagement/batch-assign/`;
+export const download_hostel_allotment = `${host}/hostelmanagement/download_hostel_allotment/`;
+export const assign_roomsbywarden = `${host}/hostelmanagement/assign-roomsbywarden/`;
+export const update_student_allotment = `${host}/hostelmanagement/update-student-allotment/`;
+export const submit_complaint = `${host}/hostelmanagement/complaints/submit/`;
+export const get_student_complaints = `${host}/hostelmanagement/complaints/my/`;
+export const get_hostel_complaints = `${host}/hostelmanagement/complaints/hostel/`;
+export const update_complaint_status = `${host}/hostelmanagement/complaints/update-status/`;
+export const escalate_complaint = `${host}/hostelmanagement/complaints/escalate/`;
+// Warden complaint management routes
+export const get_escalated_complaints = `${host}/hostelmanagement/complaints/warden/escalated/`;
+export const get_all_complaints_for_warden = `${host}/hostelmanagement/complaints/warden/all/`;
+export const resolve_complaint = `${host}/hostelmanagement/complaints/warden/resolve/`;
+export const reassign_complaint = `${host}/hostelmanagement/complaints/warden/reassign/`;

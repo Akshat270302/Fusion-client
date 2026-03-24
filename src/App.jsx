@@ -16,6 +16,7 @@ import Examination from "./Modules/Examination/examination";
 import Database from "./Modules/Database/database";
 import ProgrammeCurriculumRoutes from "./Modules/Program_curriculum/programmCurriculum";
 import NotFoundPage from "./components/NotFoundPage";
+import HostelManagement from "./Modules/Hostel-Management";
 
 const theme = createTheme({
   breakpoints: {
@@ -51,6 +52,14 @@ export default function App() {
           element={
             <Layout>
               <AcademicPage />
+            </Layout>
+          }
+        />
+        <Route
+          path="/hostel-management/*"
+          element={
+            <Layout>
+              <HostelManagement />
             </Layout>
           }
         />
