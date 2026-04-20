@@ -11,6 +11,7 @@ import {
   Table,
   Select,
   Badge,
+  TextInput,
 } from "@mantine/core";
 import { useState, useEffect } from "react";
 import {
@@ -28,6 +29,18 @@ export default function UploadAttendanceComponent() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredStudents = students.filter((student) => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) {
+      return true;
+    }
+
+    const studentId = (student.student_id || "").toLowerCase();
+    const studentName = (student.name || "").toLowerCase();
+    return studentId.includes(query) || studentName.includes(query);
+  });
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -182,9 +195,20 @@ export default function UploadAttendanceComponent() {
 
           <Divider my="xs" />
 
+          <TextInput
+            label="Search Students"
+            placeholder="Search by student ID or name"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.currentTarget.value)}
+          />
+
           {students.length === 0 && !loading ? (
             <Text size="sm" color="dimmed" ta="center">
               No students found for your hostel.
+            </Text>
+          ) : filteredStudents.length === 0 ? (
+            <Text size="sm" color="dimmed" ta="center">
+              No students match your search.
             </Text>
           ) : (
             <Table striped highlightOnHover withTableBorder withColumnBorders>
@@ -197,7 +221,7 @@ export default function UploadAttendanceComponent() {
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {students.map((student) => (
+                {filteredStudents.map((student) => (
                   <Table.Tr key={student.student_id}>
                     <Table.Td>{student.student_id}</Table.Td>
                     <Table.Td>{student.name}</Table.Td>
@@ -226,7 +250,7 @@ export default function UploadAttendanceComponent() {
 
           <Group justify="space-between" mt="sm">
             <Badge color="blue" variant="light">
-              Total students: {students.length}
+              Showing {filteredStudents.length} of {students.length} students
             </Badge>
             <Button
               onClick={handleSubmit}

@@ -27,8 +27,23 @@ const userSlice = createSlice({
       state.accessibleModules = action.payload;
     },
     setCurrentAccessibleModules: (state) => {
-      state.currentAccessibleModules =
-        state.accessibleModules[state.role] || {};
+      const exactModules = state.accessibleModules[state.role];
+      if (exactModules) {
+        state.currentAccessibleModules = exactModules;
+        return;
+      }
+
+      const normalizedRole = (state.role || "").toLowerCase();
+      if (normalizedRole.includes("admin")) {
+        const adminKey = Object.keys(state.accessibleModules).find(
+          (key) => key.toLowerCase() === "admin",
+        );
+        state.currentAccessibleModules =
+          (adminKey && state.accessibleModules[adminKey]) || {};
+        return;
+      }
+
+      state.currentAccessibleModules = {};
     },
     clearUserName: (state) => {
       state.username = "User";

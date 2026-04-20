@@ -6,7 +6,10 @@ import ImposeFine from "./caretaker/ImposeFine";
 import ManageFine from "./caretaker/ManageFine";
 import StudentInfo from "./caretaker/StudentInfo";
 import UploadAttendance from "./caretaker/UploadAttendance";
+import ManageGuestRoomBookings from "./caretaker/ManageGuestRoomBookings";
+import RoomChangeRequests from "./caretaker/RoomChangeRequests";
 import ManageComplaints from "../components/caretaker/ManageComplaints";
+import InventoryManagement from "./caretaker/InventoryManagement";
 
 const sections = [
   "Notice Board",
@@ -14,6 +17,9 @@ const sections = [
   "Fine",
   "Student Allotment",
   "Upload Attendance",
+  "Guest Room Management",
+  "Room Change Requests",
+  "Inventory Management",
   "Manage Complaints",
 ];
 
@@ -28,6 +34,9 @@ const components = {
   "Fine_Manage Imposed Fines": ManageFine,
   "Student Allotment": StudentInfo,
   "Upload Attendance": UploadAttendance,
+  "Guest Room Management": ManageGuestRoomBookings,
+  "Room Change Requests": RoomChangeRequests,
+  "Inventory Management": InventoryManagement,
   "Manage Complaints": ManageComplaints,
 };
 

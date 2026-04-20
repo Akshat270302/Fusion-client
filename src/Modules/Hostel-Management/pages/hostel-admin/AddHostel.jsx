@@ -1,36 +1,41 @@
 import React, { useState } from "react";
 import {
+  Alert,
+  Card,
   TextInput,
   NumberInput,
   Select,
   Button,
   Group,
   Stack,
-  Notification,
-  Paper,
+  Text,
 } from "@mantine/core";
+import { IconAlertCircle, IconCheck } from "@tabler/icons-react";
 import axios from "axios";
 import { addHostelRoute } from "../../../../routes/hostelManagementRoutes"; // Adjust the import path as per your file structure
 
 function AddHostel() {
-  const [hallId, setHallId] = useState("");
   const [hallName, setHallName] = useState("");
-  const [maxAccommodation, setMaxAccommodation] = useState("");
+  const [maxAccommodation, setMaxAccommodation] = useState(0);
   const [assignedBatch, setAssignedBatch] = useState("");
   const [typeOfSeater, setTypeOfSeater] = useState("");
+  const [roomCount, setRoomCount] = useState(0);
+  const [roomCapacity, setRoomCapacity] = useState(0);
+  const [blockNo, setBlockNo] = useState("A");
   const [loading, setLoading] = useState(false);
-  const [notification, setNotification] = useState({
-    opened: false,
+  const [message, setMessage] = useState({
+    type: null,
     message: "",
-    color: "",
   });
 
   const resetForm = () => {
-    setHallId("");
     setHallName("");
-    setMaxAccommodation("");
+    setMaxAccommodation(0);
     setAssignedBatch("");
     setTypeOfSeater("");
+    setRoomCount(0);
+    setRoomCapacity(0);
+    setBlockNo("A");
   };
 
   const handleSubmit = async (event) => {
@@ -38,22 +43,24 @@ function AddHostel() {
     const token = localStorage.getItem("authToken");
 
     if (!token) {
-      setNotification({
-        opened: true,
+      setMessage({
+        type: "error",
         message: "Authentication token not found. Please login again.",
-        color: "red",
       });
       return;
     }
 
     setLoading(true);
+    setMessage({ type: null, message: "" });
     try {
       const data = {
-        hall_id: hallId,
         hall_name: hallName,
         max_accomodation: maxAccommodation,
         assigned_batch: assignedBatch,
         type_of_seater: typeOfSeater,
+        room_count: roomCount,
+        room_capacity: roomCapacity || undefined,
+        block_no: blockNo,
       };
 
       const response = await axios.post(addHostelRoute, data, {
@@ -64,26 +71,25 @@ function AddHostel() {
       });
 
       if (response.status === 201) {
-        setNotification({
-          opened: true,
-          message: "Hostel added successfully!",
-          color: "green",
+        setMessage({
+          type: "success",
+          message:
+            response.data?.message ||
+            "Hostel created in inactive state successfully!",
         });
         resetForm();
       } else {
-        setNotification({
-          opened: true,
+        setMessage({
+          type: "error",
           message: "Submission failed. Please try again.",
-          color: "red",
         });
       }
     } catch (error) {
-      setNotification({
-        opened: true,
+      setMessage({
+        type: "error",
         message:
-          error.response?.data?.message ||
+          error.response?.data?.error ||
           "An error occurred. Please try again.",
-        color: "red",
       });
     } finally {
       setLoading(false);
@@ -91,43 +97,27 @@ function AddHostel() {
   };
 
   return (
-    <Paper
-      shadow="md"
-      p="md"
-      withBorder
-      sx={(theme) => ({
-        width: "100%",
-        maxWidth: 500,
-        margin: "auto",
-        backgroundColor: theme.white,
-        border: `1px solid ${theme.colors.gray[3]}`,
-        borderRadius: theme.radius.md,
-      })}
-    >
+    <Card withBorder shadow="sm" radius="md" p="lg" style={{ maxWidth: 640 }}>
+      <Text fw={700} size="lg" mb="md">
+        Add New Hostel
+      </Text>
       <form onSubmit={handleSubmit}>
         <Stack spacing="md">
           <TextInput
-            label="Hall ID"
-            value={hallId}
-            onChange={(e) => setHallId(e.target.value)}
-            required
-            placeholder="Enter Hall ID"
-          />
-
-          <TextInput
-            label="Hall Name"
+            label="Hostel Name"
             value={hallName}
             onChange={(e) => setHallName(e.target.value)}
             required
-            placeholder="Enter Hall Name"
+            placeholder="Enter hostel name"
           />
 
           <NumberInput
-            label="Max Accommodation"
+            label="Total Capacity"
             value={maxAccommodation}
             onChange={(value) => setMaxAccommodation(value)}
             required
-            placeholder="Enter Max Accommodation"
+            min={1}
+            placeholder="Enter total student capacity"
           />
 
           <TextInput
@@ -135,12 +125,12 @@ function AddHostel() {
             value={assignedBatch}
             onChange={(e) => setAssignedBatch(e.target.value)}
             required
-            placeholder="Enter Assigned Batch"
+            placeholder="e.g. 2024"
           />
 
           <Select
-            label="Type of Seater"
-            placeholder="Select type"
+            label="Hostel Type (Seater)"
+            placeholder="Select seater type"
             value={typeOfSeater}
             onChange={setTypeOfSeater}
             data={[
@@ -151,28 +141,53 @@ function AddHostel() {
             required
           />
 
+          <NumberInput
+            label="Number of Rooms"
+            value={roomCount}
+            onChange={(value) => setRoomCount(value)}
+            min={1}
+            required
+            placeholder="Enter total rooms"
+          />
+
+          <NumberInput
+            label="Room Capacity (optional override)"
+            value={roomCapacity}
+            onChange={(value) => setRoomCapacity(value)}
+            min={0}
+            placeholder="Leave 0 to use seater default"
+          />
+
+          <TextInput
+            label="Block"
+            value={blockNo}
+            onChange={(e) => setBlockNo(e.target.value)}
+            maxLength={1}
+            placeholder="A"
+          />
+
           <Group position="right" spacing="sm" mt="md">
             <Button variant="outline" onClick={resetForm}>
               Clear
             </Button>
             <Button type="submit" loading={loading}>
-              Submit
+              Save Hostel
             </Button>
           </Group>
 
-          {notification.opened && (
-            <Notification
-              color={notification.color}
-              onClose={() =>
-                setNotification({ ...notification, opened: false })
-              }
-            >
-              {notification.message}
-            </Notification>
+          {message.type === "success" && (
+            <Alert icon={<IconCheck size={16} />} color="green" variant="light">
+              {message.message}
+            </Alert>
+          )}
+          {message.type === "error" && (
+            <Alert icon={<IconAlertCircle size={16} />} color="red" variant="light">
+              {message.message}
+            </Alert>
           )}
         </Stack>
       </form>
-    </Paper>
+    </Card>
   );
 }
 

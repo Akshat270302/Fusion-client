@@ -107,7 +107,13 @@ export default function ViewHostel() {
                 { label: "Current Students:", value: hostel.number_students },
                 {
                   label: "Batch Assigned:",
-                  value: hostel.assigned_batch.join() || "Not Assigned",
+                  value: Array.isArray(hostel.assigned_batch)
+                    ? hostel.assigned_batch.join(", ")
+                    : hostel.assigned_batch || "Not Assigned",
+                },
+                {
+                  label: "Operational Status:",
+                  value: hostel.operational_status || "Inactive",
                 },
                 { label: "Caretaker Name:", value: hostel.assigned_caretaker },
                 { label: "Warden Name:", value: hostel.assigned_warden },

@@ -12,15 +12,20 @@ import {
   Box,
   Divider,
   Alert,
+  Select,
 } from "@mantine/core";
 import axios from "axios";
-import { host } from "../../../../routes/globalRoutes";
+import {
+  fetch_fines_url,
+  update_fine_status_url,
+} from "../../../../routes/hostelManagementRoutes";
 
 export default function FineManagement() {
   const [fines, setFines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [repeatOffenders, setRepeatOffenders] = useState([]);
+  const [repeatThreshold, setRepeatThreshold] = useState("3");
 
   const fetchFines = async () => {
     const token = localStorage.getItem("authToken");
@@ -31,26 +36,34 @@ export default function FineManagement() {
     }
 
     try {
-      const response = await axios.get(
-        `${host}/hostelmanagement/fines/hostel/`,
-        {
-          headers: { Authorization: `Token ${token}` },
-        },
-      );
-      setFines(response.data);
+      const response = await axios.get(fetch_fines_url, {
+        headers: { Authorization: `Token ${token}` },
+        params: { repeat_offender_threshold: repeatThreshold },
+      });
+
+      const fineRows = Array.isArray(response.data?.fines)
+        ? response.data.fines
+        : [];
+
+      setFines(fineRows);
       setError(null);
 
-      // Identify repeat offenders (students with 3+ unpaid fines)
-      const unpaidFines = response.data.filter(
-        (fine) => fine.status === "Pending",
-      );
-      const studentCounts = {};
-      unpaidFines.forEach((fine) => {
-        studentCounts[fine.student] = (studentCounts[fine.student] || 0) + 1;
-      });
-      const offenders = Object.keys(studentCounts).filter(
-        (student) => studentCounts[student] >= 3,
-      );
+      const offenders = fineRows
+        .filter((fine) => fine.repeat_offender)
+        .reduce((acc, fine) => {
+          if (!acc.find((entry) => entry.student_id === fine.student_id)) {
+            acc.push({
+              student_id: fine.student_id,
+              student_name: fine.student_name,
+              fine_count_for_student: fine.fine_count_for_student || 0,
+            });
+          }
+          return acc;
+        }, [])
+        .sort(
+          (a, b) => b.fine_count_for_student - a.fine_count_for_student,
+        );
+
       setRepeatOffenders(offenders);
     } catch (err) {
       console.error("Error fetching fines:", err);
@@ -72,8 +85,8 @@ export default function FineManagement() {
     }
 
     try {
-      await axios.patch(
-        `${host}/hostelmanagement/fines/${fineId}/status/`,
+      await axios.post(
+        update_fine_status_url(fineId),
         { status: newStatus },
         {
           headers: { Authorization: `Token ${token}` },
@@ -90,7 +103,7 @@ export default function FineManagement() {
 
   useEffect(() => {
     fetchFines();
-  }, []);
+  }, [repeatThreshold]);
 
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
@@ -141,8 +154,13 @@ export default function FineManagement() {
               {repeatOffenders.length > 0 && (
                 <Alert title="Repeat Offenders" color="red" variant="filled">
                   <Text>
-                    Students with 3+ unpaid fines: {repeatOffenders.join(", ")}
+                    Students with {repeatThreshold}+ fines:
                   </Text>
+                  {repeatOffenders.map((offender) => (
+                    <Text key={offender.student_id} size="sm" mt="xs">
+                      {offender.student_name} ({offender.student_id}) - {offender.fine_count_for_student} fines
+                    </Text>
+                  ))}
                   <Text size="sm" mt="xs">
                     Consider disciplinary action.
                   </Text>
@@ -155,6 +173,21 @@ export default function FineManagement() {
                   Fine Summary
                 </Text>
                 <Group spacing="xl">
+                  <div>
+                    <Text size="sm" color="dimmed">
+                      Repeat Threshold
+                    </Text>
+                    <Select
+                      data={[
+                        { value: "2", label: "2+" },
+                        { value: "3", label: "3+" },
+                        { value: "5", label: "5+" },
+                      ]}
+                      value={repeatThreshold}
+                      onChange={(value) => setRepeatThreshold(value || "3")}
+                      w={90}
+                    />
+                  </div>
                   <div>
                     <Text size="sm" color="dimmed">
                       Total Fines
@@ -209,6 +242,11 @@ export default function FineManagement() {
                             >
                               {fine.status}
                             </Badge>
+                            {fine.repeat_offender && (
+                              <Badge color="red" size="sm" variant="light">
+                                Repeat Offender
+                              </Badge>
+                            )}
                           </Group>
                           {fine.status === "Pending" && (
                             <Button
