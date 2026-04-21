@@ -10,6 +10,7 @@ import ManageHostelStatus from "./hostel-admin/ManageHostelStatus";
 import HostelLifecycleWorkflow from "./hostel-admin/HostelLifecycleWorkflow";
 import FinalizeRoomVacation from "./hostel-admin/FinalizeRoomVacation";
 import SubmittedReportsReview from "./hostel-admin/SubmittedReportsReview";
+import GuardDutyManagement from "./hostel-admin/GuardDutyManagement";
 
 const sections = [
   "Room Allotment",
@@ -20,6 +21,7 @@ const sections = [
   "Vacation Finalization",
   "Submitted Reports",
   "Inventory Management",
+  "Guard Duty Management",
   "Manage Hostel",
   "Manage Batch",
 ];
@@ -33,6 +35,7 @@ const components = {
   "Vacation Finalization": FinalizeRoomVacation,
   "Submitted Reports": SubmittedReportsReview,
   "Inventory Management": InventoryManagement,
+  "Guard Duty Management": GuardDutyManagement,
   "Manage Batch": AssignBatch,
   "Manage Hostel": AssignCaretaker,
 };

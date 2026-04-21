@@ -15,12 +15,14 @@ import {
 } from "@mantine/core";
 import { IconAlertCircle, IconCheck } from "@tabler/icons-react";
 import axios from "axios";
+import { useSelector } from "react-redux";
 import {
   hostelReportDetail,
   hostelReportDownload,
   hostelReportReview,
   hostelReportSubmitted,
 } from "../../../../routes/hostelManagementRoutes";
+import HallSelector from "../shared/HallSelector";
 
 const statusColor = (status) => {
   const normalized = (status || "").toLowerCase();
@@ -31,6 +33,10 @@ const statusColor = (status) => {
 };
 
 export default function SubmittedReportsReview() {
+  const role = (useSelector((state) => state.user.role) || "").toLowerCase();
+  const isSuperAdmin = role.includes("admin");
+
+  const [selectedHall, setSelectedHall] = useState(null);
   const [reports, setReports] = useState([]);
   const [selectedReportId, setSelectedReportId] = useState(null);
   const [selectedReport, setSelectedReport] = useState(null);
@@ -63,6 +69,7 @@ export default function SubmittedReportsReview() {
     try {
       const response = await axios.get(hostelReportSubmitted, {
         headers: getAuthHeaders(),
+        params: isSuperAdmin ? { hall_id: selectedHall } : undefined,
       });
       const rows = Array.isArray(response.data) ? response.data : [];
       setReports(rows);
@@ -90,6 +97,7 @@ export default function SubmittedReportsReview() {
     try {
       const response = await axios.get(hostelReportDetail(reportId), {
         headers: getAuthHeaders(),
+        params: isSuperAdmin ? { hall_id: selectedHall } : undefined,
       });
       setSelectedReport(response.data || null);
     } catch (requestError) {
@@ -103,12 +111,25 @@ export default function SubmittedReportsReview() {
   };
 
   useEffect(() => {
+    if (isSuperAdmin && !selectedHall) {
+      setReports([]);
+      setSelectedReportId(null);
+      setSelectedReport(null);
+      setLoading(false);
+      setError("");
+      return;
+    }
+
     fetchReports();
-  }, []);
+  }, [isSuperAdmin, selectedHall]);
 
   useEffect(() => {
+    if (isSuperAdmin && !selectedHall) {
+      setSelectedReport(null);
+      return;
+    }
     fetchDetail(selectedReportId);
-  }, [selectedReportId]);
+  }, [selectedReportId, isSuperAdmin, selectedHall]);
 
   const sortedReports = useMemo(
     () =>
@@ -132,6 +153,7 @@ export default function SubmittedReportsReview() {
         {
           decision,
           feedback,
+          ...(isSuperAdmin ? { hall_id: selectedHall } : {}),
         },
         {
           headers: getAuthHeaders(),
@@ -162,6 +184,7 @@ export default function SubmittedReportsReview() {
         headers: {
           Authorization: `Token ${token}`,
         },
+        params: isSuperAdmin ? { hall_id: selectedHall } : undefined,
         responseType: "blob",
       });
 
@@ -209,104 +232,123 @@ export default function SubmittedReportsReview() {
           </Alert>
         )}
 
-        <Select
-          label="Select Report"
-          placeholder="Choose report"
-          data={sortedReports.map((row) => ({
-            value: String(row.id),
-            label: `${row.report_uid} - ${row.title}`,
-          }))}
-          value={selectedReportId ? String(selectedReportId) : null}
-          onChange={(value) => setSelectedReportId(value ? Number(value) : null)}
-        />
+        {isSuperAdmin && (
+          <HallSelector
+            value={selectedHall}
+            onChange={setSelectedHall}
+            label="Select Hall"
+          />
+        )}
 
-        {selectedReport && (
+        {isSuperAdmin && !selectedHall && (
+          <Text size="sm" c="dimmed">
+            Select a hall to review submitted reports.
+          </Text>
+        )}
+
+        {(!isSuperAdmin || selectedHall) && (
           <>
-            <Card withBorder radius="md" p="md">
-              <Stack spacing={4}>
-                <Group justify="space-between">
-                  <Text fw={500}>{selectedReport.title}</Text>
-                  <Badge color={statusColor(selectedReport.status)} variant="light">
-                    {selectedReport.status}
-                  </Badge>
-                </Group>
-                <Text size="sm">UID: {selectedReport.report_uid}</Text>
-                <Text size="sm">Creator: {selectedReport.created_by}</Text>
-                <Text size="sm">Hostel: {selectedReport.hall_name}</Text>
-                <Text size="sm">
-                  Date Range: {selectedReport.start_date} to {selectedReport.end_date}
-                </Text>
-                <Text size="sm">Priority: {selectedReport.priority}</Text>
-                <Text size="sm">Submission Notes: {selectedReport.submission_notes || "-"}</Text>
-              </Stack>
-            </Card>
 
-            <Card withBorder radius="md" p="md">
-              <Stack spacing="sm">
-                <Text fw={500}>Report Sections</Text>
-                <ScrollArea>
-                  <Table striped highlightOnHover withTableBorder withColumnBorders>
-                    <Table.Thead>
-                      <Table.Tr>
-                        <Table.Th>Section</Table.Th>
-                        <Table.Th>Summary</Table.Th>
-                      </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                      {(selectedReport.report_data?.sections || []).map((section) => (
-                        <Table.Tr key={section.key}>
-                          <Table.Td>{section.title}</Table.Td>
-                          <Table.Td>
-                            {Object.entries(section.summary || {}).map(([key, value]) => (
-                              <Text key={key} size="xs">
-                                {key}: {String(value)}
-                              </Text>
-                            ))}
-                          </Table.Td>
-                        </Table.Tr>
-                      ))}
-                    </Table.Tbody>
-                  </Table>
-                </ScrollArea>
-              </Stack>
-            </Card>
+            <Select
+              label="Select Report"
+              placeholder="Choose report"
+              data={sortedReports.map((row) => ({
+                value: String(row.id),
+                label: `${row.report_uid} - ${row.title}`,
+              }))}
+              value={selectedReportId ? String(selectedReportId) : null}
+              onChange={(value) => setSelectedReportId(value ? Number(value) : null)}
+            />
 
-            <Card withBorder radius="md" p="md">
-              <Stack spacing="sm">
-                <Text fw={500}>Review Decision</Text>
-                <Select
-                  label="Decision"
-                  data={[
-                    { value: "approved", label: "Approve" },
-                    { value: "needs_revision", label: "Needs Revision" },
-                  ]}
-                  value={decision}
-                  onChange={(value) => setDecision(value || "approved")}
-                  allowDeselect={false}
-                  w={220}
-                />
-                <Textarea
-                  label="Feedback"
-                  minRows={3}
-                  value={feedback}
-                  onChange={(event) => setFeedback(event.currentTarget.value)}
-                />
-                <Group>
-                  <Button onClick={handleReview} loading={saving}>
-                    Save Review
-                  </Button>
-                  <Button variant="outline" onClick={() => downloadReport("pdf")}>
-                    Download PDF
-                  </Button>
-                  <Button variant="outline" onClick={() => downloadReport("csv")}>
-                    Download CSV
-                  </Button>
-                  <Button variant="outline" onClick={() => downloadReport("both")}>
-                    Download Both
-                  </Button>
-                </Group>
-              </Stack>
-            </Card>
+            {selectedReport && (
+              <>
+                <Card withBorder radius="md" p="md">
+                  <Stack spacing={4}>
+                    <Group justify="space-between">
+                      <Text fw={500}>{selectedReport.title}</Text>
+                      <Badge color={statusColor(selectedReport.status)} variant="light">
+                        {selectedReport.status}
+                      </Badge>
+                    </Group>
+                    <Text size="sm">UID: {selectedReport.report_uid}</Text>
+                    <Text size="sm">Creator: {selectedReport.created_by}</Text>
+                    <Text size="sm">Hostel: {selectedReport.hall_name}</Text>
+                    <Text size="sm">
+                      Date Range: {selectedReport.start_date} to {selectedReport.end_date}
+                    </Text>
+                    <Text size="sm">Priority: {selectedReport.priority}</Text>
+                    <Text size="sm">Submission Notes: {selectedReport.submission_notes || "-"}</Text>
+                  </Stack>
+                </Card>
+
+                <Card withBorder radius="md" p="md">
+                  <Stack spacing="sm">
+                    <Text fw={500}>Report Sections</Text>
+                    <ScrollArea>
+                      <Table striped highlightOnHover withTableBorder withColumnBorders>
+                        <Table.Thead>
+                          <Table.Tr>
+                            <Table.Th>Section</Table.Th>
+                            <Table.Th>Summary</Table.Th>
+                          </Table.Tr>
+                        </Table.Thead>
+                        <Table.Tbody>
+                          {(selectedReport.report_data?.sections || []).map((section) => (
+                            <Table.Tr key={section.key}>
+                              <Table.Td>{section.title}</Table.Td>
+                              <Table.Td>
+                                {Object.entries(section.summary || {}).map(([key, value]) => (
+                                  <Text key={key} size="xs">
+                                    {key}: {String(value)}
+                                  </Text>
+                                ))}
+                              </Table.Td>
+                            </Table.Tr>
+                          ))}
+                        </Table.Tbody>
+                      </Table>
+                    </ScrollArea>
+                  </Stack>
+                </Card>
+
+                <Card withBorder radius="md" p="md">
+                  <Stack spacing="sm">
+                    <Text fw={500}>Review Decision</Text>
+                    <Select
+                      label="Decision"
+                      data={[
+                        { value: "approved", label: "Approve" },
+                        { value: "needs_revision", label: "Needs Revision" },
+                      ]}
+                      value={decision}
+                      onChange={(value) => setDecision(value || "approved")}
+                      allowDeselect={false}
+                      w={220}
+                    />
+                    <Textarea
+                      label="Feedback"
+                      minRows={3}
+                      value={feedback}
+                      onChange={(event) => setFeedback(event.currentTarget.value)}
+                    />
+                    <Group>
+                      <Button onClick={handleReview} loading={saving}>
+                        Save Review
+                      </Button>
+                      <Button variant="outline" onClick={() => downloadReport("pdf")}>
+                        Download PDF
+                      </Button>
+                      <Button variant="outline" onClick={() => downloadReport("csv")}>
+                        Download CSV
+                      </Button>
+                      <Button variant="outline" onClick={() => downloadReport("both")}>
+                        Download Both
+                      </Button>
+                    </Group>
+                  </Stack>
+                </Card>
+              </>
+            )}
           </>
         )}
       </Stack>

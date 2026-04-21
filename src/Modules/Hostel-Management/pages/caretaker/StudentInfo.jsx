@@ -259,7 +259,7 @@ export default function StudentInfo() {
               <Paper p="md" radius="md" withBorder>
                 <Group position="apart">
                   <Text size="lg" weight={500} color="blue">
-                    Name:
+                    Roll_No:
                   </Text>
                   <Text size="lg">{selectedStudent.id__user__username}</Text>
                 </Group>

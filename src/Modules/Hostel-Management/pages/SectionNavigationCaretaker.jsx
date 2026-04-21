@@ -10,6 +10,7 @@ import ManageGuestRoomBookings from "./caretaker/ManageGuestRoomBookings";
 import RoomChangeRequests from "./caretaker/RoomChangeRequests";
 import ManageComplaints from "../components/caretaker/ManageComplaints";
 import InventoryManagement from "./caretaker/InventoryManagement";
+import GuardSecurityStatus from "./caretaker/GuardSecurityStatus";
 
 const sections = [
   "Notice Board",
@@ -20,6 +21,7 @@ const sections = [
   "Guest Room Management",
   "Room Change Requests",
   "Inventory Management",
+  "Guard Security Status",
   "Manage Complaints",
 ];
 
@@ -37,6 +39,7 @@ const components = {
   "Guest Room Management": ManageGuestRoomBookings,
   "Room Change Requests": RoomChangeRequests,
   "Inventory Management": InventoryManagement,
+  "Guard Security Status": GuardSecurityStatus,
   "Manage Complaints": ManageComplaints,
 };
 

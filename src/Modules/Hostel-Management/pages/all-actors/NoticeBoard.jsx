@@ -12,10 +12,16 @@ import {
 } from "@mantine/core";
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { getStudentNotices } from "../../../../routes/hostelManagementRoutes";
+import { useSelector } from "react-redux";
+import { getNotices, getStudentNotices } from "../../../../routes/hostelManagementRoutes";
 import { Empty } from "../../../../components/empty";
+import HallSelector from "../shared/HallSelector";
 
 export default function NoticeBoard() {
+  const role = (useSelector((state) => state.user.role) || "").toLowerCase();
+  const isSuperAdmin = role.includes("admin");
+
+  const [selectedHall, setSelectedHall] = useState(null);
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -30,8 +36,10 @@ export default function NoticeBoard() {
 
     try {
       setLoading(true);
-      const response = await axios.get(getStudentNotices, {
+      const endpoint = isSuperAdmin ? getNotices : getStudentNotices;
+      const response = await axios.get(endpoint, {
         headers: { Authorization: `Token ${token}` },
+        params: isSuperAdmin ? { hall_id: selectedHall } : undefined,
       });
       setNotices(Array.isArray(response.data) ? response.data : []);
       setError(null);
@@ -45,16 +53,39 @@ export default function NoticeBoard() {
       setLoading(false);
     }
   };
+
   useEffect(() => {
+    if (isSuperAdmin && !selectedHall) {
+      setNotices([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
     fetchNotices();
-  }, []);
+  }, [isSuperAdmin, selectedHall]);
 
   return (
     <Container size="md" px="md">
       <Card shadow="sm" p={0} radius="md" withBorder>
+        {isSuperAdmin ? (
+          <Box p="md" sx={{ borderBottom: "1px solid #e9ecef" }}>
+            <HallSelector
+              value={selectedHall}
+              onChange={setSelectedHall}
+              label="Select Hall"
+            />
+          </Box>
+        ) : null}
+
         <Box p="md" sx={{ height: "70vh" }}>
           <ScrollArea style={{ height: "100%" }}>
-            {loading ? (
+            {isSuperAdmin && !selectedHall ? (
+              <Stack align="center" gap="sm" py="xl">
+                <Text align="center" color="dimmed" size="md">
+                  Select a hall to view notices.
+                </Text>
+              </Stack>
+            ) : loading ? (
               <Container
                 py="xl"
                 style={{ display: "flex", justifyContent: "center" }}

@@ -27,13 +27,16 @@ import {
   inventoryResourceRequestSubmit,
   inventoryUpdateLogs,
 } from "../../../../routes/hostelManagementRoutes";
+import HallSelector from "./HallSelector";
 
 const conditionOptions = ["Good", "Damaged", "Missing", "Depleted"];
 const requestTypeOptions = ["Replacement", "New", "Additional"];
 const reviewDecisionOptions = ["Approved", "Rejected"];
 
 export default function InventoryManagementPanel({ role }) {
+  const isAdmin = role === "admin";
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [selectedHall, setSelectedHall] = useState(null);
   const [inventoryItems, setInventoryItems] = useState([]);
   const [resourceRequests, setResourceRequests] = useState([]);
   const [inspections, setInspections] = useState([]);
@@ -51,7 +54,7 @@ export default function InventoryManagementPanel({ role }) {
   const [successMessage, setSuccessMessage] = useState("");
 
   const isCaretaker = role === "caretaker";
-  const canReview = role === "warden" || role === "admin";
+  const canReview = role === "warden" || isAdmin;
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem("authToken");
@@ -71,7 +74,10 @@ export default function InventoryManagementPanel({ role }) {
   };
 
   const fetchDashboard = async () => {
-    const response = await axios.get(inventoryDashboard, { headers: getAuthHeaders() });
+    const response = await axios.get(inventoryDashboard, {
+      headers: getAuthHeaders(),
+      params: isAdmin ? { hall_id: selectedHall } : undefined,
+    });
     const rows = Array.isArray(response.data) ? response.data : [];
     setInventoryItems(rows);
 
@@ -95,17 +101,26 @@ export default function InventoryManagementPanel({ role }) {
   };
 
   const fetchRequests = async () => {
-    const response = await axios.get(inventoryResourceRequests, { headers: getAuthHeaders() });
+    const response = await axios.get(inventoryResourceRequests, {
+      headers: getAuthHeaders(),
+      params: isAdmin ? { hall_id: selectedHall } : undefined,
+    });
     setResourceRequests(Array.isArray(response.data) ? response.data : []);
   };
 
   const fetchInspections = async () => {
-    const response = await axios.get(inventoryInspections, { headers: getAuthHeaders() });
+    const response = await axios.get(inventoryInspections, {
+      headers: getAuthHeaders(),
+      params: isAdmin ? { hall_id: selectedHall } : undefined,
+    });
     setInspections(Array.isArray(response.data) ? response.data : []);
   };
 
   const fetchLogs = async () => {
-    const response = await axios.get(inventoryUpdateLogs, { headers: getAuthHeaders() });
+    const response = await axios.get(inventoryUpdateLogs, {
+      headers: getAuthHeaders(),
+      params: isAdmin ? { hall_id: selectedHall } : undefined,
+    });
     setUpdateLogs(Array.isArray(response.data) ? response.data : []);
   };
 
@@ -122,8 +137,17 @@ export default function InventoryManagementPanel({ role }) {
   };
 
   useEffect(() => {
+    if (isAdmin && !selectedHall) {
+      setInventoryItems([]);
+      setResourceRequests([]);
+      setInspections([]);
+      setUpdateLogs([]);
+      setLoading(false);
+      setError("");
+      return;
+    }
     refreshAll();
-  }, []);
+  }, [isAdmin, selectedHall]);
 
   const updateInspectionRow = (inventoryId, field, value) => {
     setInspectionRows((prev) => ({
@@ -224,7 +248,10 @@ export default function InventoryManagementPanel({ role }) {
 
   const submitReview = async (requestId) => {
     clearBanners();
-    const payload = reviewRows[requestId] || { decision: "Approved", remarks: "" };
+    const payload = {
+      ...(reviewRows[requestId] || { decision: "Approved", remarks: "" }),
+      ...(isAdmin ? { hall_id: selectedHall } : {}),
+    };
 
     try {
       const response = await axios.post(inventoryResourceRequestReview(requestId), payload, {
@@ -277,6 +304,14 @@ export default function InventoryManagementPanel({ role }) {
           </Button>
         </Group>
 
+        {isAdmin && (
+          <HallSelector
+            value={selectedHall}
+            onChange={setSelectedHall}
+            label="Select Hall"
+          />
+        )}
+
         {successMessage && (
           <Alert icon={<IconCheck size={16} />} color="teal" variant="light">
             {successMessage}
@@ -288,7 +323,14 @@ export default function InventoryManagementPanel({ role }) {
           </Alert>
         )}
 
-        <Tabs value={activeTab} onChange={setActiveTab}>
+        {isAdmin && !selectedHall && (
+          <Text size="sm" c="dimmed">
+            Select a hall to access inventory data.
+          </Text>
+        )}
+
+        {(!isAdmin || selectedHall) && (
+          <Tabs value={activeTab} onChange={setActiveTab}>
           <Tabs.List>
             <Tabs.Tab value="dashboard">Dashboard</Tabs.Tab>
             {isCaretaker && <Tabs.Tab value="inspection">Check Inventory</Tabs.Tab>}
@@ -675,7 +717,8 @@ export default function InventoryManagementPanel({ role }) {
               </Table>
             </ScrollArea>
           </Tabs.Panel>
-        </Tabs>
+          </Tabs>
+        )}
       </Stack>
     </Paper>
   );

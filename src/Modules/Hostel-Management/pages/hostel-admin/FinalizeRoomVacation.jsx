@@ -14,10 +14,12 @@ import {
 } from "@mantine/core";
 import { IconAlertCircle, IconCheck } from "@tabler/icons-react";
 import axios from "axios";
+import { useSelector } from "react-redux";
 import {
   roomVacationFinalizationRequests,
   roomVacationFinalize,
 } from "../../../../routes/hostelManagementRoutes";
+import HallSelector from "../shared/HallSelector";
 
 const statusColor = (status) => {
   const normalized = (status || "").toLowerCase();
@@ -27,6 +29,10 @@ const statusColor = (status) => {
 };
 
 export default function FinalizeRoomVacation() {
+  const role = (useSelector((state) => state.user.role) || "").toLowerCase();
+  const isSuperAdmin = role.includes("admin");
+
+  const [selectedHall, setSelectedHall] = useState(null);
   const [requests, setRequests] = useState([]);
   const [selectedRequestId, setSelectedRequestId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -52,6 +58,7 @@ export default function FinalizeRoomVacation() {
     try {
       const response = await axios.get(roomVacationFinalizationRequests, {
         headers: getAuthHeaders(),
+        params: isSuperAdmin ? { hall_id: selectedHall } : undefined,
       });
       const rows = Array.isArray(response.data) ? response.data : [];
       setRequests(rows);
@@ -71,8 +78,15 @@ export default function FinalizeRoomVacation() {
   };
 
   useEffect(() => {
+    if (isSuperAdmin && !selectedHall) {
+      setRequests([]);
+      setSelectedRequestId(null);
+      setLoading(false);
+      setError("");
+      return;
+    }
     fetchRequests();
-  }, []);
+  }, [isSuperAdmin, selectedHall]);
 
   const selectedRequest = useMemo(
     () => requests.find((row) => row.id === selectedRequestId) || null,
@@ -97,6 +111,7 @@ export default function FinalizeRoomVacation() {
         roomVacationFinalize(selectedRequest.id),
         {
           confirm: true,
+          ...(isSuperAdmin ? { hall_id: selectedHall } : {}),
         },
         {
           headers: getAuthHeaders(),
@@ -138,80 +153,99 @@ export default function FinalizeRoomVacation() {
           </Alert>
         )}
 
-        <Select
-          label="Select Request"
-          placeholder="Choose clearance-approved request"
-          data={requests.map((row) => ({
-            value: String(row.id),
-            label: `#${row.id} - ${row.student_username} (${row.status})`,
-          }))}
-          value={selectedRequestId ? String(selectedRequestId) : null}
-          onChange={(value) => setSelectedRequestId(value ? Number(value) : null)}
-        />
+        {isSuperAdmin && (
+          <HallSelector
+            value={selectedHall}
+            onChange={setSelectedHall}
+            label="Select Hall"
+          />
+        )}
 
-        {!selectedRequest && (
+        {isSuperAdmin && !selectedHall && (
           <Text size="sm" c="dimmed">
-            No request selected.
+            Select a hall to access room vacation finalization data.
           </Text>
         )}
 
-        {selectedRequest && (
+        {(!isSuperAdmin || selectedHall) && (
           <>
-            <Card withBorder radius="md" p="md">
-              <Stack spacing={4}>
-                <Group justify="space-between">
-                  <Text fw={500}>Request Overview</Text>
-                  <Badge color={statusColor(selectedRequest.status)} variant="light">
-                    {selectedRequest.status}
-                  </Badge>
-                </Group>
-                <Text size="sm">Student: {selectedRequest.student_username}</Text>
-                <Text size="sm">Hall: {selectedRequest.hall_name}</Text>
-                <Text size="sm">Room: {selectedRequest.room_label || "-"}</Text>
-                <Text size="sm">Certificate: {selectedRequest.clearance_certificate_no || "-"}</Text>
-                <Text size="sm">Vacation Date: {selectedRequest.intended_vacation_date || "-"}</Text>
-                <Text size="sm">Reason: {selectedRequest.reason}</Text>
-              </Stack>
-            </Card>
 
-            <Card withBorder radius="md" p="md">
-              <Stack spacing="sm">
-                <Text fw={500}>Checklist Status</Text>
-                <ScrollArea>
-                  <Table striped withTableBorder withColumnBorders>
-                    <Table.Thead>
-                      <Table.Tr>
-                        <Table.Th>Item</Table.Th>
-                        <Table.Th>Status</Table.Th>
-                        <Table.Th>Blocking</Table.Th>
-                      </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                      {(selectedRequest.checklist || []).map((item) => (
-                        <Table.Tr key={item.code}>
-                          <Table.Td>{item.title}</Table.Td>
-                          <Table.Td>{item.status}</Table.Td>
-                          <Table.Td>
-                            <Badge color={item.is_blocking ? "red" : "green"} variant="light">
-                              {item.is_blocking ? "Yes" : "No"}
-                            </Badge>
-                          </Table.Td>
-                        </Table.Tr>
-                      ))}
-                    </Table.Tbody>
-                  </Table>
-                </ScrollArea>
-              </Stack>
-            </Card>
+            <Select
+              label="Select Request"
+              placeholder="Choose clearance-approved request"
+              data={requests.map((row) => ({
+                value: String(row.id),
+                label: `#${row.id} - ${row.student_username} (${row.status})`,
+              }))}
+              value={selectedRequestId ? String(selectedRequestId) : null}
+              onChange={(value) => setSelectedRequestId(value ? Number(value) : null)}
+            />
 
-            <Button
-              color="teal"
-              onClick={handleFinalize}
-              loading={saving}
-              disabled={(selectedRequest.status || "").toLowerCase() !== "clearance approved"}
-            >
-              Finalize Room Vacation
-            </Button>
+            {!selectedRequest && (
+              <Text size="sm" c="dimmed">
+                No request selected.
+              </Text>
+            )}
+
+            {selectedRequest && (
+              <>
+                <Card withBorder radius="md" p="md">
+                  <Stack spacing={4}>
+                    <Group justify="space-between">
+                      <Text fw={500}>Request Overview</Text>
+                      <Badge color={statusColor(selectedRequest.status)} variant="light">
+                        {selectedRequest.status}
+                      </Badge>
+                    </Group>
+                    <Text size="sm">Student: {selectedRequest.student_username}</Text>
+                    <Text size="sm">Hall: {selectedRequest.hall_name}</Text>
+                    <Text size="sm">Room: {selectedRequest.room_label || "-"}</Text>
+                    <Text size="sm">Certificate: {selectedRequest.clearance_certificate_no || "-"}</Text>
+                    <Text size="sm">Vacation Date: {selectedRequest.intended_vacation_date || "-"}</Text>
+                    <Text size="sm">Reason: {selectedRequest.reason}</Text>
+                  </Stack>
+                </Card>
+
+                <Card withBorder radius="md" p="md">
+                  <Stack spacing="sm">
+                    <Text fw={500}>Checklist Status</Text>
+                    <ScrollArea>
+                      <Table striped withTableBorder withColumnBorders>
+                        <Table.Thead>
+                          <Table.Tr>
+                            <Table.Th>Item</Table.Th>
+                            <Table.Th>Status</Table.Th>
+                            <Table.Th>Blocking</Table.Th>
+                          </Table.Tr>
+                        </Table.Thead>
+                        <Table.Tbody>
+                          {(selectedRequest.checklist || []).map((item) => (
+                            <Table.Tr key={item.code}>
+                              <Table.Td>{item.title}</Table.Td>
+                              <Table.Td>{item.status}</Table.Td>
+                              <Table.Td>
+                                <Badge color={item.is_blocking ? "red" : "green"} variant="light">
+                                  {item.is_blocking ? "Yes" : "No"}
+                                </Badge>
+                              </Table.Td>
+                            </Table.Tr>
+                          ))}
+                        </Table.Tbody>
+                      </Table>
+                    </ScrollArea>
+                  </Stack>
+                </Card>
+
+                <Button
+                  color="teal"
+                  onClick={handleFinalize}
+                  loading={saving}
+                  disabled={(selectedRequest.status || "").toLowerCase() !== "clearance approved"}
+                >
+                  Finalize Room Vacation
+                </Button>
+              </>
+            )}
           </>
         )}
       </Stack>

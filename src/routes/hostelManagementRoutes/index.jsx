@@ -75,6 +75,12 @@ export const inventoryResourceRequestReview = (requestId) =>
 export const inventoryItemUpdate = (inventoryId) =>
   `${host}/hostelmanagement/inventory/items/${inventoryId}/update/`;
 export const inventoryUpdateLogs = `${host}/hostelmanagement/inventory/update-logs/`;
+export const guardDutySchedules = `${host}/hostelmanagement/guard-duties/schedules/`;
+export const guardDutyScheduleDetail = (scheduleId) =>
+  `${host}/hostelmanagement/guard-duties/schedules/${scheduleId}/`;
+export const guardDutyConcerns = `${host}/hostelmanagement/guard-duties/concerns/`;
+export const guardDutyResolveConcern = (concernId) =>
+  `${host}/hostelmanagement/guard-duties/concerns/${concernId}/resolve/`;
 export const imposeFineRoute = `${host}/hostelmanagement/fines/impose/`;
 export const show_leave_request = `${host}/hostelmanagement/leave/pending/`;
 export const update_leave_status = `${host}/hostelmanagement/leave/update-status/`;

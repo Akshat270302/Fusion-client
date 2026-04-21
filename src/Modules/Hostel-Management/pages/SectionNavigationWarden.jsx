@@ -9,6 +9,7 @@ import WardenComplaintsView from "../../../components/warden/WardenComplaintsVie
 import InventoryManagement from "./warden/InventoryManagement";
 import FineManagement from "./warden/FineManagement";
 import HostelReports from "./warden/HostelReports";
+import GuardSecurityStatus from "./warden/GuardSecurityStatus";
 
 const sections = [
   "Notice Board",
@@ -18,6 +19,7 @@ const sections = [
   "Room Change Requests",
   "Fine Management",
   "Inventory Management",
+  "Guard Security Status",
   "Reports",
   "Manage Complaints",
 ];
@@ -30,6 +32,7 @@ const components = {
   "Room Change Requests": RoomChangeRequests,
   "Fine Management": FineManagement,
   "Inventory Management": InventoryManagement,
+  "Guard Security Status": GuardSecurityStatus,
   Reports: HostelReports,
   "Manage Complaints": WardenComplaintsView,
 };
