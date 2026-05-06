@@ -23,7 +23,7 @@ import {
   guardDutyResolveConcern,
   guardDutyScheduleDetail,
   guardDutySchedules,
-  getCaretakers,
+  getGuards,
 } from "../../../../routes/hostelManagementRoutes";
 
 const DAY_OPTIONS = [
@@ -126,18 +126,18 @@ export default function GuardDutyPanel({ role }) {
       return;
     }
 
-    const response = await axios.get(getCaretakers, {
+    const response = await axios.get(getGuards, {
       headers: getAuthHeaders(),
     });
 
-    const users = Array.isArray(response.data?.caretaker_usernames)
-      ? response.data.caretaker_usernames
+    const guards = Array.isArray(response.data?.guard_staff)
+      ? response.data.guard_staff
       : [];
 
     const nameMap = {};
-    users.forEach((userRow) => {
-      const username = String(userRow.id_id || "").trim();
-      const fullName = String(userRow.full_name || "").trim();
+    guards.forEach((guard) => {
+      const username = String(guard.username || "").trim();
+      const fullName = String(guard.full_name || "").trim();
       if (username) {
         nameMap[username] = fullName;
       }
@@ -469,33 +469,36 @@ export default function GuardDutyPanel({ role }) {
                   </Table.Td>
                 </Table.Tr>
               ) : (
-                schedules.map((schedule) => (
-                  <Table.Tr key={schedule.id}>
-                    <Table.Td>{schedule.staff_name}</Table.Td>
-                    <Table.Td>{schedule.day}</Table.Td>
-                    <Table.Td>
-                      {schedule.start_time} - {schedule.end_time}
-                    </Table.Td>
-                    <Table.Td>{schedule.hall_name}</Table.Td>
-                    {isAdmin ? (
+                schedules.map((schedule) => {
+                  const displayName = String(guardNameByUsername[schedule.staff_name] || schedule.staff_name || "Unknown");
+                  return (
+                    <Table.Tr key={schedule.id}>
+                      <Table.Td>{displayName}</Table.Td>
+                      <Table.Td>{schedule.day}</Table.Td>
                       <Table.Td>
-                        <Group spacing="xs">
-                          <Button size="xs" variant="light" onClick={() => handleEditSchedule(schedule)}>
-                            Edit
-                          </Button>
-                          <Button
-                            size="xs"
-                            color="red"
-                            variant="light"
-                            onClick={() => handleDeleteSchedule(schedule.id)}
-                          >
-                            Delete
-                          </Button>
-                        </Group>
+                        {schedule.start_time} - {schedule.end_time}
                       </Table.Td>
-                    ) : null}
-                  </Table.Tr>
-                ))
+                      <Table.Td>{schedule.hall_name}</Table.Td>
+                      {isAdmin ? (
+                        <Table.Td>
+                          <Group spacing="xs">
+                            <Button size="xs" variant="light" onClick={() => handleEditSchedule(schedule)}>
+                              Edit
+                            </Button>
+                            <Button
+                              size="xs"
+                              color="red"
+                              variant="light"
+                              onClick={() => handleDeleteSchedule(schedule.id)}
+                            >
+                              Delete
+                            </Button>
+                          </Group>
+                        </Table.Td>
+                      ) : null}
+                    </Table.Tr>
+                  );
+                })
               )}
             </Table.Tbody>
           </Table>

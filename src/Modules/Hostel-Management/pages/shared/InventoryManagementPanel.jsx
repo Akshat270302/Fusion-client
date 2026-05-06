@@ -37,6 +37,7 @@ export default function InventoryManagementPanel({ role }) {
   const isAdmin = role === "admin";
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedHall, setSelectedHall] = useState(null);
+  const [inventorySearch, setInventorySearch] = useState("");
   const [inventoryItems, setInventoryItems] = useState([]);
   const [resourceRequests, setResourceRequests] = useState([]);
   const [inspections, setInspections] = useState([]);
@@ -55,6 +56,73 @@ export default function InventoryManagementPanel({ role }) {
 
   const isCaretaker = role === "caretaker";
   const canReview = role === "warden" || isAdmin;
+
+  const approvedRequests = resourceRequests.filter((request) => request.status === "Approved");
+
+  const approvedQuantityByItem = approvedRequests.reduce((accumulator, request) => {
+    (request.items || []).forEach((item) => {
+      const itemName = String(item.item_name || "").trim().toLowerCase();
+      if (!itemName) {
+        return;
+      }
+      accumulator[itemName] = (accumulator[itemName] || 0) + Number(item.requested_quantity || 0);
+    });
+    return accumulator;
+  }, {});
+
+  const approvedItemDisplayNameByKey = approvedRequests.reduce((accumulator, request) => {
+    (request.items || []).forEach((item) => {
+      const itemKey = String(item.item_name || "").trim().toLowerCase();
+      const displayName = String(item.item_name || "").trim();
+      if (!itemKey || !displayName || accumulator[itemKey]) {
+        return;
+      }
+      accumulator[itemKey] = displayName;
+    });
+    return accumulator;
+  }, {});
+
+  const filteredInventoryItems = inventoryItems.filter((item) =>
+    String(item.inventory_name || "").toLowerCase().includes(inventorySearch.trim().toLowerCase()),
+  );
+
+  const inspectionBaseRowsByName = {};
+
+  inventoryItems.forEach((item) => {
+    const itemKey = String(item.inventory_name || "").trim().toLowerCase();
+    if (!itemKey) {
+      return;
+    }
+
+    inspectionBaseRowsByName[itemKey] = {
+      inventory_id: item.inventory_id,
+      inventory_name: item.inventory_name,
+      expected_quantity: Number(item.quantity || 0),
+      approved_quantity: approvedQuantityByItem[itemKey] || 0,
+      condition_status: item.condition_status || "Good",
+    };
+  });
+
+  Object.entries(approvedQuantityByItem).forEach(([itemKey, approvedQuantity]) => {
+    if (!inspectionBaseRowsByName[itemKey]) {
+      inspectionBaseRowsByName[itemKey] = {
+        inventory_id: `approved-${itemKey}`,
+        inventory_name: approvedItemDisplayNameByKey[itemKey] || itemKey,
+        expected_quantity: Number(approvedQuantity || 0),
+        approved_quantity: Number(approvedQuantity || 0),
+        condition_status: "Good",
+      };
+      return;
+    }
+
+    inspectionBaseRowsByName[itemKey].approved_quantity = Number(approvedQuantity || 0);
+  });
+
+  const inspectionRowsData = Object.values(inspectionBaseRowsByName);
+
+  const filteredInspectionRows = inspectionRowsData.filter((item) =>
+    String(item.inventory_name || "").toLowerCase().includes(inventorySearch.trim().toLowerCase()),
+  );
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem("authToken");
@@ -341,41 +409,81 @@ export default function InventoryManagementPanel({ role }) {
           </Tabs.List>
 
           <Tabs.Panel value="dashboard" pt="md">
-            <ScrollArea>
-              <Table striped highlightOnHover withTableBorder withColumnBorders>
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>ID</Table.Th>
-                    <Table.Th>Hall</Table.Th>
-                    <Table.Th>Item</Table.Th>
-                    <Table.Th>Quantity</Table.Th>
-                    <Table.Th>Condition</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {inventoryItems.length === 0 && (
-                    <Table.Tr>
-                      <Table.Td colSpan={5}>
-                        <Text c="dimmed" ta="center" py="md">
-                          No inventory items found.
-                        </Text>
-                      </Table.Td>
-                    </Table.Tr>
-                  )}
-                  {inventoryItems.map((item) => (
-                    <Table.Tr key={item.inventory_id}>
-                      <Table.Td>{item.inventory_id}</Table.Td>
-                      <Table.Td>{item.hall_name || item.hall_id}</Table.Td>
-                      <Table.Td>{item.inventory_name}</Table.Td>
-                      <Table.Td>{item.quantity}</Table.Td>
-                      <Table.Td>
-                        <Badge variant="light">{item.condition_status}</Badge>
-                      </Table.Td>
-                    </Table.Tr>
-                  ))}
-                </Table.Tbody>
-              </Table>
-            </ScrollArea>
+            <Stack spacing="md">
+              {inventoryItems.length > 0 && (
+                <ScrollArea>
+                  <Table striped highlightOnHover withTableBorder withColumnBorders>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>ID</Table.Th>
+                        <Table.Th>Hall</Table.Th>
+                        <Table.Th>Item</Table.Th>
+                        <Table.Th>Quantity</Table.Th>
+                        <Table.Th>Condition</Table.Th>
+                      </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {inventoryItems.map((item) => (
+                        <Table.Tr key={item.inventory_id}>
+                          <Table.Td>{item.inventory_id}</Table.Td>
+                          <Table.Td>{item.hall_name || item.hall_id}</Table.Td>
+                          <Table.Td>{item.inventory_name}</Table.Td>
+                          <Table.Td>{item.quantity}</Table.Td>
+                          <Table.Td>
+                            <Badge variant="light">{item.condition_status}</Badge>
+                          </Table.Td>
+                        </Table.Tr>
+                      ))}
+                    </Table.Tbody>
+                  </Table>
+                </ScrollArea>
+              )}
+
+              {isCaretaker && (
+                <>
+                  <Text fw={600}>Approved Resource Requests</Text>
+                  <ScrollArea>
+                    <Table striped withTableBorder withColumnBorders>
+                      <Table.Thead>
+                        <Table.Tr>
+                          <Table.Th>Request ID</Table.Th>
+                          <Table.Th>Item</Table.Th>
+                          <Table.Th>Approved Quantity</Table.Th>
+                          <Table.Th>Reviewed At</Table.Th>
+                          <Table.Th>Remarks</Table.Th>
+                        </Table.Tr>
+                      </Table.Thead>
+                      <Table.Tbody>
+                        {approvedRequests.length === 0 && (
+                          <Table.Tr>
+                            <Table.Td colSpan={5}>
+                              <Text c="dimmed" ta="center" py="md">
+                                No approved resource requests found.
+                              </Text>
+                            </Table.Td>
+                          </Table.Tr>
+                        )}
+                        {approvedRequests.flatMap((request) =>
+                          (request.items || []).map((item) => (
+                            <Table.Tr key={`approved-${request.id}-${item.item_id}`}>
+                              <Table.Td>{request.id}</Table.Td>
+                              <Table.Td>{item.item_name}</Table.Td>
+                              <Table.Td>{item.requested_quantity}</Table.Td>
+                              <Table.Td>
+                                {request.reviewed_at
+                                  ? new Date(request.reviewed_at).toLocaleString()
+                                  : "-"}
+                              </Table.Td>
+                              <Table.Td>{request.review_remarks || "-"}</Table.Td>
+                            </Table.Tr>
+                          )),
+                        )}
+                      </Table.Tbody>
+                    </Table>
+                  </ScrollArea>
+                </>
+              )}
+            </Stack>
           </Tabs.Panel>
 
           {isCaretaker && (
@@ -384,26 +492,44 @@ export default function InventoryManagementPanel({ role }) {
                 <Text size="sm" c="dimmed">
                   Compare observed stock and condition, then submit a periodic inspection report.
                 </Text>
+                <TextInput
+                  placeholder="Search resource by name"
+                  value={inventorySearch}
+                  onChange={(event) => setInventorySearch(event.currentTarget.value)}
+                />
                 <ScrollArea>
                   <Table striped withTableBorder withColumnBorders>
                     <Table.Thead>
                       <Table.Tr>
                         <Table.Th>Item</Table.Th>
                         <Table.Th>Expected</Table.Th>
+                        <Table.Th>Approved Qty (Warden)</Table.Th>
                         <Table.Th>Observed</Table.Th>
                         <Table.Th>Condition</Table.Th>
                         <Table.Th>Remarks</Table.Th>
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
-                      {inventoryItems.map((item) => (
+                      {filteredInspectionRows.length === 0 && (
+                        <Table.Tr>
+                          <Table.Td colSpan={6}>
+                            <Text c="dimmed" ta="center" py="md">
+                              No matching inventory items found.
+                            </Text>
+                          </Table.Td>
+                        </Table.Tr>
+                      )}
+                      {filteredInspectionRows.map((item) => (
                         <Table.Tr key={`inspect-${item.inventory_id}`}>
                           <Table.Td>{item.inventory_name}</Table.Td>
-                          <Table.Td>{item.quantity}</Table.Td>
+                          <Table.Td>{item.expected_quantity}</Table.Td>
+                          <Table.Td>
+                            {item.approved_quantity}
+                          </Table.Td>
                           <Table.Td>
                             <NumberInput
                               min={0}
-                              value={inspectionRows[item.inventory_id]?.observed_quantity ?? item.quantity}
+                              value={inspectionRows[item.inventory_id]?.observed_quantity ?? item.expected_quantity}
                               onChange={(value) =>
                                 updateInspectionRow(item.inventory_id, "observed_quantity", Number(value || 0))
                               }
@@ -432,9 +558,6 @@ export default function InventoryManagementPanel({ role }) {
                     </Table.Tbody>
                   </Table>
                 </ScrollArea>
-                <Group justify="flex-end">
-                  <Button onClick={submitInspection}>Submit Inspection</Button>
-                </Group>
               </Stack>
             </Tabs.Panel>
           )}

@@ -4,6 +4,7 @@ export const getNotices = `${host}/hostelmanagement/notices/`;
 export const getStudentNotices = `${host}/hostelmanagement/student/notices/`;
 export const getCaretakers = `${host}/hostelmanagement/get_caretakers/`;
 export const getWardens = `${host}/hostelmanagement/get_wardens/`;
+export const getGuards = `${host}/hostelmanagement/get_guards/`;
 export const getBatches = `${host}/hostelmanagement/get_batches/`;
 export const createNotice = `${host}/hostelmanagement/notices/`;
 export const deleteNotice = `${host}/hostelmanagement/delete_notice/`;
